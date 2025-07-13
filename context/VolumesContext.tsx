@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 type Volume = {
   id: string;
@@ -6,22 +6,41 @@ type Volume = {
   conferido: boolean;
 };
 
-type VolumesContextType = {
+type Pedido = {
+  id: string;
   volumes: Volume[];
-  setVolumes: React.Dispatch<React.SetStateAction<Volume[]>>;
+  finalizado: boolean;
+};
+
+type VolumesContextType = {
+  pedidos: Pedido[];
+  setPedidos: React.Dispatch<React.SetStateAction<Pedido[]>>;
 };
 
 const VolumesContext = createContext<VolumesContextType | undefined>(undefined);
 
 export const VolumesProvider = ({ children }: { children: ReactNode }) => {
-  const [volumes, setVolumes] = useState<Volume[]>([
-    { id: '1', itens: ['Pizza', 'Coca-Cola'], conferido: false },
-    { id: '2', itens: ['Hambúrguer', 'Suco'], conferido: false },
-    { id: '3', itens: ['Salgados', 'Água'], conferido: false },
+  const [pedidos, setPedidos] = useState<Pedido[]>([
+    {
+      id: '1001',
+      finalizado: false,
+      volumes: [
+        { id: '1', itens: ['Pizza', 'Coca'], conferido: false },
+        { id: '2', itens: ['Hambúrguer', 'Suco'], conferido: false },
+      ],
+    },
+    {
+      id: '1002',
+      finalizado: false,
+      volumes: [
+        { id: '1', itens: ['Pastel', 'Guaraná'], conferido: false },
+        { id: '2', itens: ['Batata Frita'], conferido: false },
+      ],
+    },
   ]);
 
   return (
-    <VolumesContext.Provider value={{ volumes, setVolumes }}>
+    <VolumesContext.Provider value={{ pedidos, setPedidos }}>
       {children}
     </VolumesContext.Provider>
   );
@@ -29,8 +48,6 @@ export const VolumesProvider = ({ children }: { children: ReactNode }) => {
 
 export const useVolumes = (): VolumesContextType => {
   const context = useContext(VolumesContext);
-  if (!context) {
-    throw new Error('useVolumes must be used within a VolumesProvider');
-  }
+  if (!context) throw new Error('useVolumes must be used within a VolumesProvider');
   return context;
 };

@@ -1,34 +1,40 @@
-import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import React from 'react';
+import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useVolumes } from '../../context/VolumesContext';
 
 export default function VolumesScreen() {
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { volumes } = useVolumes();
+  const { pedidos, setPedidos } = useVolumes();
+
+  const pedido = pedidos.find(p => p.id === id);
+  if (!pedido) return <Text>Pedido não encontrado</Text>;
 
   const mostrarItens = (volumeId: string) => {
-    const volume = volumes.find((v) => v.id === volumeId);
-    if (volume) {
-      Alert.alert(`Itens do Volume ${volumeId}`, volume.itens.join(', '));
-    }
+    const volume = pedido.volumes.find(v => v.id === volumeId);
+    if (volume) Alert.alert(`Itens do Volume ${volumeId}`, volume.itens.join(', '));
   };
 
   const finalizarPedido = () => {
-    const pendentes = volumes.filter(v => !v.conferido).map(v => v.id);
+    const pendentes = pedido.volumes.filter(v => !v.conferido);
     if (pendentes.length > 0) {
-      Alert.alert('Volumes Pendentes', `Faltam conferir os volumes: ${pendentes.join(', ')}`);
+      Alert.alert('Volumes Pendentes', `Faltam conferir os volumes: ${pendentes.map(v => v.id).join(', ')}`);
     } else {
-      Alert.alert('Sucesso', 'Todos os volumes foram conferidos!');
+      const novos = pedidos.map(p =>
+        p.id === pedido.id ? { ...p, finalizado: true } : p
+      );
+      setPedidos(novos);
+      Alert.alert('Pedido Finalizado', 'Todos os volumes foram conferidos.');
+      router.back();
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Volumes do Pedido #{id}</Text>
+      <Text style={styles.title}>Volumes do Pedido #{pedido.id}</Text>
       <FlatList
-        data={volumes}
+        data={pedido.volumes}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <TouchableOpacity
@@ -42,7 +48,7 @@ export default function VolumesScreen() {
       />
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.buttonPrimary} onPress={() => router.push(`/conferir/${id}`)}>
+        <TouchableOpacity style={styles.buttonPrimary} onPress={() => router.push(`/conferir/${pedido.id}`)}>
           <Text style={styles.buttonText}>Conferir Pedido</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.buttonSecondary} onPress={finalizarPedido}>

@@ -1,23 +1,26 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useRef, useState } from 'react';
+import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useVolumes } from '../../context/VolumesContext';
 
 export default function ConferirScreen() {
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { volumes, setVolumes } = useVolumes();
+  const { pedidos, setPedidos } = useVolumes();
   const [codigo, setCodigo] = useState('');
   const inputRef = useRef<TextInput>(null);
 
+  const pedidoIndex = pedidos.findIndex(p => p.id === id);
+  if (pedidoIndex === -1) return <Text>Pedido não encontrado</Text>;
+
+  const volumes = pedidos[pedidoIndex].volumes;
+
   const conferirVolume = () => {
-    const index = volumes.findIndex(v => v.id === codigo);
-    if (index !== -1 && !volumes[index].conferido) {
-      const novos = [...volumes];
-      novos[index].conferido = true;
-      setVolumes(novos);
-    } else {
-      alert('Código inválido ou já conferido.');
+    const volumeIndex = volumes.findIndex(v => v.id === codigo);
+    if (volumeIndex !== -1 && !volumes[volumeIndex].conferido) {
+      const novosPedidos = [...pedidos];
+      novosPedidos[pedidoIndex].volumes[volumeIndex].conferido = true;
+      setPedidos(novosPedidos);
     }
     setCodigo('');
     setTimeout(() => inputRef.current?.focus(), 100);
@@ -29,7 +32,7 @@ export default function ConferirScreen() {
       <TextInput
         ref={inputRef}
         style={styles.input}
-        placeholder="Digite o código de barras (ex: 1, 2, 3)"
+        placeholder="Digite o código de barras"
         value={codigo}
         onChangeText={setCodigo}
         keyboardType="numeric"
@@ -45,9 +48,7 @@ export default function ConferirScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={[styles.volume, { backgroundColor: item.conferido ? '#4caf50' : '#ccc' }]}>
-            <Text style={styles.volumeText}>
-              Volume {item.id} {item.conferido ? '✅' : ''}
-            </Text>
+            <Text style={styles.volumeText}>Volume {item.id} {item.conferido ? '✅' : ''}</Text>
           </View>
         )}
         contentContainerStyle={{ paddingBottom: 30 }}
