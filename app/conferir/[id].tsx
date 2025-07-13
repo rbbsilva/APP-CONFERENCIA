@@ -1,47 +1,33 @@
+import React, { useState, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-
-const volumesEsperados = ['1', '2', '3']; // IDs dos volumes que devem ser conferidos
+import { useVolumes } from '../../context/VolumesContext';
 
 export default function ConferirScreen() {
-  const { id } = useLocalSearchParams(); // ID do pedido
+  const { id } = useLocalSearchParams();
   const router = useRouter();
-
+  const { volumes, setVolumes } = useVolumes();
   const [codigo, setCodigo] = useState('');
-  const [conferidos, setConferidos] = useState<string[]>([]);
+  const inputRef = useRef<TextInput>(null);
 
   const conferirVolume = () => {
-    if (volumesEsperados.includes(codigo) && !conferidos.includes(codigo)) {
-      setConferidos([...conferidos, codigo]);
-      setCodigo('');
+    const index = volumes.findIndex(v => v.id === codigo);
+    if (index !== -1 && !volumes[index].conferido) {
+      const novos = [...volumes];
+      novos[index].conferido = true;
+      setVolumes(novos);
     } else {
-      setCodigo('');
       alert('Código inválido ou já conferido.');
     }
-  };
-
-  const renderItem = ({ item }: { item: string }) => {
-    const isFinalizado = conferidos.includes(item);
-    return (
-      <View
-        style={[
-          styles.volume,
-          { backgroundColor: isFinalizado ? '#4caf50' : '#ccc' },
-        ]}
-      >
-        <Text style={styles.volumeText}>
-          Volume {item} {isFinalizado ? '✅' : ''}
-        </Text>
-      </View>
-    );
+    setCodigo('');
+    setTimeout(() => inputRef.current?.focus(), 100);
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Conferência do Pedido #{id}</Text>
-
       <TextInput
+        ref={inputRef}
         style={styles.input}
         placeholder="Digite o código de barras (ex: 1, 2, 3)"
         value={codigo}
@@ -49,16 +35,21 @@ export default function ConferirScreen() {
         keyboardType="numeric"
         onSubmitEditing={conferirVolume}
       />
-
       <TouchableOpacity onPress={conferirVolume} style={styles.button}>
         <Text style={styles.buttonText}>Conferir</Text>
       </TouchableOpacity>
 
       <Text style={styles.subtitle}>Volumes Conferidos</Text>
       <FlatList
-        data={volumesEsperados}
-        keyExtractor={(item) => item}
-        renderItem={renderItem}
+        data={volumes}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={[styles.volume, { backgroundColor: item.conferido ? '#4caf50' : '#ccc' }]}>
+            <Text style={styles.volumeText}>
+              Volume {item.id} {item.conferido ? '✅' : ''}
+            </Text>
+          </View>
+        )}
         contentContainerStyle={{ paddingBottom: 30 }}
       />
 
